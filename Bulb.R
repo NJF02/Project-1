@@ -20,21 +20,42 @@ Station2 = filter(data, Station == '2')
 Station3 = filter(data, Station == '3')
 Station4 = filter(data, Station == '4')
 
+
+
 # Histograms
 
-hist1 = ggplot(Station1, aes(Watts))
-hist2 = ggplot(Station2, aes(Watts))
-hist3 = ggplot(Station3, aes(Watts))
-hist4 = ggplot(Station4, aes(Watts))
-
-hist1 + geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+hist1 = ggplot(Station1, aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+hist2 = ggplot(Station2, aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+hist3 = ggplot(Station3, aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+hist4 = ggplot(Station4, aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
   geom_density(alpha=.2, fill="#FF6666")
 
-# Box Plot
+hist1
+hist2
+hist3
+hist4
 
-box = ggplot(data, aes(Station, Watts, colour = Station)) + geom_boxplot()
-box
+# Box Plots
 
+box0 = ggplot(data, aes(Station, Watts, colour = Station)) + geom_boxplot()
+box0
+
+box1 = ggplot(Station1, aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+box2 = ggplot(Station2, aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+box3 = ggplot(Station3, aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+box4 = ggplot(Station4, aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+
+box1
+box2
+box3
+box4
 
 # Model Fitting
 
