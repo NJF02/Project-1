@@ -1,0 +1,216 @@
+---
+title: "Bulb"
+author: "Group Bulb"
+date: "2024-10-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+```{r import-libraries, include = FALSE}
+
+library(dplyr)
+library(ggplot2)
+library(car)
+library(lme4)
+
+```
+
+```{r data, echo = FALSE}
+
+# Change to your own directory
+
+setwd("C:/Users/User/Desktop/Project 1")
+
+# Import data and data cleaning
+
+data = read.csv("Bulb.csv")
+data$Bulb = factor(data$Bulb)
+data$Machine = factor(data$Machine)
+data$Station = factor(data$Station)
+
+```
+
+```{r grouping-and-splitting-data, echo = FALSE}
+
+# Find the mean of each bulb over 4 stations
+
+WattsbyMachine = data %>% group_by(Bulb, Machine) %>% 
+  summarise(Watts = mean(Watts))
+
+# Find the mean of bulbs created from the same machine and tested in the same 
+# station
+
+WattsbyStation = data %>% group_by(Machine, Station) %>%
+  summarise(Watts = mean(Watts))
+
+Station1 = filter(data, Station == '1')
+Station2 = filter(data, Station == '2')
+Station3 = filter(data, Station == '3')
+Station4 = filter(data, Station == '4')
+
+```
+
+## Exploratory Analysis
+
+```{r histograms}
+
+# Histograms of each station
+
+Station1 %>% ggplot(aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+Station2 %>% ggplot(aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+Station3 %>% ggplot(aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+Station4 %>% ggplot(aes(Watts)) + 
+  geom_histogram(binwidth = 0.1, color="black", fill="white") + 
+  geom_density(alpha=.2, fill="#FF6666")
+
+```
+
+```{r boxplots-1}
+
+# Boxplots for each station
+
+Station1 %>% ggplot(aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+Station2 %>% ggplot(aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+Station3 %>% ggplot(aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+Station4 %>% ggplot(aes(Machine, Watts, colour = Machine)) + geom_boxplot()
+
+```
+
+```{r boxplots-2}
+
+# Boxplots by machine and by station
+
+WattsbyMachine %>% ggplot(aes(x = Machine, y = Watts)) + geom_boxplot()
+WattsbyStation %>% ggplot(aes(x = Station, y = Watts)) + geom_boxplot()
+
+```
+
+```{r pre-analysis-1}
+
+# Check for normality for each station
+
+shapiro.test(Station1$Watts)
+shapiro.test(Station2$Watts)
+shapiro.test(Station3$Watts)
+shapiro.test(Station4$Watts)
+
+```
+
+```{r anova}
+
+# Fitting an anova model to check for difference in means between stations
+
+aov.Station = aov(Watts ~ Station, data = data)
+summary(aov.Station)
+
+```
+
+```{r pre-analysis-2}
+
+# Check for any significant difference in means levels by station
+
+TukeyHSD(aov.Station)
+plot(TukeyHSD(aov.Station))
+
+```
+
+```{r model-fitting-1}
+
+# Fitting a linear model comparing stations
+
+fit0 = lm(Watts ~ Station, data = data)
+summary(fit0)
+
+```
+
+
+```{r model-fitting-2}
+
+# Fitting a linear model comparing machines for each station
+
+fit1 = lm(Watts ~ Machine, data = Station1)
+fit2 = lm(Watts ~ Machine, data = Station2)
+fit3 = lm(Watts ~ Machine, data = Station3)
+fit4 = lm(Watts ~ Machine, data = Station4)
+
+summary(fit1)
+summary(fit2)
+summary(fit3)
+summary(fit4)
+
+```
+
+```{r model-fitting-3}
+
+# Linear mixed effects model with machine and watts as fixed effects and 
+# station as random effect
+
+Watts.null.Machine = lmer(Watts ~ (1 | Station), data = data)
+Watts.Machine = lmer(Watts ~ Machine + (1 | Station), data = data)
+
+coef(Watts.Machine)
+anova(Watts.null.Machine, Watts.Machine)
+
+
+```
+```{r model-fitting-4}
+
+# Linear mixed effects model with station and watts as fixed effects and 
+# machine as random effect
+
+Watts.null.Station = lmer(Watts ~ (1 | Machine), data = data)
+Watts.Station = lmer(Watts ~ Station + (1 | Machine), data = data)
+
+coef(Watts.Station)
+anova(Watts.null.Station, Watts.Station)
+
+```
+
+```{r model-fitting-5}
+
+# Introduce random slope to station as random effect
+
+Watts.null.Machine.Random = lmer(Watts ~ (1 + Machine | Station), data = data, 
+                                 REML = FALSE)
+Watts.Machine.Random = lmer(Watts ~ Machine + (1 + Machine | Station), 
+                            data = data, REML = FALSE)
+
+coef(Watts.Machine.Random)
+anova(Watts.null.Machine.Random, Watts.Machine.Random)
+
+```
+
+```{r model-fitting-6}
+
+# Introduce random slope to machine as random effect
+
+Watts.null.Station.Random = lmer(Watts ~ (1 + Station | Machine), data = data,
+                                 REML = FALSE)
+Watts.Station.Random = lmer(Watts ~ Station + (1 + Station | Machine), 
+                            data = data, REML = FALSE)
+
+coef(Watts.Station.Random)
+anova(Watts.null.Station.Random, Watts.Station.Random)
+
+```
+
+```{r model-diagnostic-1}
+
+# Check for influcence points, outliers and leverage points
+
+influencePlot(fit0)
+influencePlot(Watts.Machine.Random)
+influencePlot(Watts.Station.Random)
+
+```
