@@ -1,0 +1,97 @@
+---
+title: "Bulb Code"
+author: "Project 1"
+date: "2024-10-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r data, echo = FALSE}
+
+# Change to your own directory
+
+setwd("C:/Users/User/Desktop/Project 1")
+
+# Import data and data cleaning
+
+data = read.csv("Bulb.csv")
+data$Bulb = factor(data$Bulb)
+data$Machine = factor(data$Machine)
+data$Station = factor(data$Station)
+
+```
+
+```{r boxplot}
+
+# Boxplots for each station
+
+library(ggplot2)
+
+data %>% ggplot(aes(Station, Watts, colour = Station)) + geom_boxplot()
+
+```
+
+```{r model-fitting}
+
+library(lmerTest)
+
+model = lmer(Watts ~ Machine + (1 | Station), data = data)
+summary(model)
+
+```
+
+```{r model-analysis}
+
+library(data.table)
+
+cleaned = coef(model)$Station
+cleaned[, c(2:10)] = cleaned[, c(2:10)] + cleaned[, 1]
+names(cleaned) = c("A", "B", "C", "D", "E", "F", "G", "H", "J", "K")
+cleaned$Station = c("1", "2", "3", "4")
+
+cleaned = melt(setDT(cleaned), id.vars = "Station", variable.name = "Machine")
+colnames(cleaned)[3] = "Watts"
+cleaned
+
+```
+
+```{r post-hoc-test}
+
+library(multcomp)
+
+tuk = glht(model, linfct = mcp(Machine = "Tukey"))
+plot(cld(tuk))
+summary(tuk)
+
+```
+
+```{r hypothesis-testing}
+
+t.test(cleaned$Watts, mu = 6)
+
+```
+
+```{r normality-level-1}
+
+library(HLMdiag)
+
+l1_residuals = hlm_resid(model, level = 1, standardize = T)
+shapiro.test(l1_residuals$.std.ls.resid)
+
+qqnorm(l1_residuals$.std.ls.resid, pch = 1, frame = F)
+qqline(l1_residuals$.std.ls.resid, lwd = 2)
+
+```
+
+```{r normality-random-intercepts}
+
+l2_residuals = hlm_resid(model, level = "Station", include.ls = F, standardize = T)
+shapiro.test(l2_residuals$.std.ranef.intercept)
+
+qqnorm(l2_residuals$.std.ranef.intercept, pch = 1, frame = F)
+qqline(l2_residuals$.std.ranef.intercept, lwd = 2)
+
+```
